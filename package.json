@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "clean": "next clean",
     "tauri:dev": "tauri dev",
-    "tauri:build": "npm run build && tauri build --bundles none"
+    "tauri:build": "npm run build && tauri build --no-bundle"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",

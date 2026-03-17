@@ -65,7 +65,7 @@ jobs:
 
       # ── 8. 编译 Tauri（仅生成 exe，不打包 installer）────────────────
       - name: 构建 Tauri 可执行文件
-        run: npx tauri build --bundles none
+        run: npx tauri build --no-bundle
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
