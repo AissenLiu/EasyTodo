@@ -3,10 +3,10 @@ import { getDb } from '@/lib/db';
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const updates = await req.json();
     const db = await getDb();
     
@@ -24,10 +24,10 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const db = await getDb();
     
     await db.run('DELETE FROM commands WHERE id = ?', [id]);
