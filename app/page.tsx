@@ -782,7 +782,7 @@ export default function Home() {
                         {task.tag_text && !editingTaskId && (
                           <span 
                             className="px-1.5 py-0.5 text-[10px] font-bold rounded-sm whitespace-nowrap" 
-                            style={{ backgroundColor: `${task.tag_color || '#e5e7eb'}80`, color: task.tag_color ? '#111827' : '#4b5563', border: `1px solid ${task.tag_color || '#e5e7eb'}` }}
+                            style={{ backgroundColor: `${task.tag_color || '#e5e7eb'}80`, color: task.tag_color ? 'var(--color-gray-900)' : 'var(--color-gray-600)', border: `1px solid ${task.tag_color || '#e5e7eb'}` }}
                           >
                             {task.tag_text}
                           </span>
