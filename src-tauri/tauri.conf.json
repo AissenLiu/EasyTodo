@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.jijian-daiban.app",
   "build": {
-    "frontendDist": "../out",
+    "frontendDist": "http://127.0.0.1:38749",
     "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "",
     "beforeDevCommand": ""
