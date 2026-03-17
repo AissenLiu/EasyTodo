@@ -1,0 +1,5 @@
+{
+  "name": "极简待办 (Minimalist Todo)",
+  "description": "A minimalist todo application with task management, calendar view, and AI settings.",
+  "requestFramePermissions": []
+}

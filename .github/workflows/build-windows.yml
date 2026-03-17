@@ -1,0 +1,119 @@
+name: 构建 Windows 桌面客户端
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:  # 支持手动触发
+
+
+# 创建 Release 需要 contents 写权限，上传 artifact 需要 actions 写权限
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    
+    steps:
+      # ── 1. 拉取代码 ────────────────────────────────────────────────────
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      # ── 2. 安装 Node.js ────────────────────────────────────────────────
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── 3. 安装 Rust 工具链 ────────────────────────────────────────────
+      - name: 安装 Rust 稳定版
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      # ── 4. 缓存 Rust 编译产物（加速后续构建）──────────────────────────
+      - name: 缓存 Cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # ── 5. 安装 npm 依赖 ───────────────────────────────────────────────
+      - name: 安装 npm 依赖
+        run: npm ci
+
+      # ── 6. 构建 Next.js（standalone 模式）────────────────────────────
+      - name: 构建 Next.js
+        run: npm run build
+        env:
+          # 如需内网 AI API，在 GitHub Secrets 中配置这些变量
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      # ── 7. 准备 standalone 包（补充静态资源）────────────────────────
+      - name: 准备 Next.js standalone 资源
+        shell: pwsh
+        run: |
+          # standalone 目录需要手动补充 static 和 public
+          Copy-Item -Recurse -Force .next/static .next/standalone/.next/static
+          if (Test-Path public) {
+            Copy-Item -Recurse -Force public .next/standalone/public
+          }
+
+      # ── 8. 编译 Tauri（仅生成 exe，不打包 installer）────────────────
+      - name: 构建 Tauri 可执行文件
+        run: npx tauri build --bundles none
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+
+      # ── 9. 打包成可分发的 zip ─────────────────────────────────────────
+      - name: 打包成 zip
+        shell: pwsh
+        run: |
+          $OutputDir = "极简待办-windows"
+          New-Item -ItemType Directory -Force $OutputDir | Out-Null
+          
+          # 复制 Tauri exe
+          $ExePath = "src-tauri/target/release/极简待办.exe"
+          if (-not (Test-Path $ExePath)) {
+            # Cargo.toml name 字段决定实际 exe 名，尝试 app.exe
+            $ExePath = "src-tauri/target/release/app.exe"
+          }
+          Copy-Item $ExePath "$OutputDir/极简待办.exe"
+          
+          # 复制 Next.js standalone 作为 server 子目录
+          Copy-Item -Recurse -Force .next/standalone "$OutputDir/server"
+          
+          # 复制启动脚本
+          Copy-Item 启动.bat $OutputDir/
+          
+          # 生成 zip
+          Compress-Archive -Path $OutputDir -DestinationPath 极简待办-windows.zip -Force
+          
+          echo "打包完成，文件列表："
+          Get-ChildItem $OutputDir -Recurse | Select-Object FullName
+
+      # ── 10. 上传 artifact ───────────────────────────────────────────
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 极简待办-windows-${{ github.sha }}
+          path: 极简待办-windows.zip
+          retention-days: 30
+
+      # ── 11. 如果是 tag 推送，自动创建 Release ────────────────────────
+      - name: 发布 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: 极简待办-windows.zip
+          name: "极简待办 ${{ github.ref_name }}"
+          body: |
+            ## 使用方法
+            1. 下载并解压 `极简待办-windows.zip`
+            2. 确认电脑已安装 Node.js（内网环境应已有）
+            3. 双击 `启动.bat` 即可运行
