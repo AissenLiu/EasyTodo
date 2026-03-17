@@ -207,11 +207,13 @@ export default function Home() {
     setDraggedItem({ groupDate, taskId });
     dragTargetRef.current = { groupDate, taskId };
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
   };
 
   // handleDragOver: ONLY handles same-group reordering
   const handleDragOver = (e: React.DragEvent, targetGroupDate: string, targetTaskIdx: number) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     if (!dragTargetRef.current) return;
 
     const cur = dragTargetRef.current;
@@ -236,6 +238,7 @@ export default function Home() {
   // handleGroupDrop: handles CROSS-GROUP moves (including pin/unpin)
   const handleGroupDrop = async (e: React.DragEvent, targetGroupDate: string) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     if (!dragTargetRef.current) return;
 
     const cur = dragTargetRef.current;

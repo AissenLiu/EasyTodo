@@ -1,12 +1,6 @@
 import type {Metadata} from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css'; // Global styles
 import Sidebar from '@/components/Sidebar';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-});
 
 export const metadata: Metadata = {
   title: '极简待办 (Minimalist Todo)',
@@ -15,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="zh-CN">
       <body className="font-sans flex min-h-screen bg-white text-gray-900 antialiased" suppressHydrationWarning>
         <Sidebar />
         <main className="flex-1 flex overflow-hidden">

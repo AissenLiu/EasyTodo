@@ -95,16 +95,24 @@ pub fn run() {
 
             // ── 创建主窗口 ─────────────────────────────────────────────────
             let url = format!("http://127.0.0.1:{}", port);
-            WebviewWindowBuilder::new(
+            let window_builder = WebviewWindowBuilder::new(
                 app,
                 "main",
                 WebviewUrl::External(url.parse().expect("无效的 URL")),
-            )
-            .title("极简待办")
-            .inner_size(1200.0, 860.0)
-            .min_inner_size(900.0, 600.0)
-            .center()
-            .build()?;
+            );
+
+            #[cfg(target_os = "windows")]
+            let window_builder = window_builder.disable_drag_drop_handler();
+
+            #[cfg(not(target_os = "windows"))]
+            let window_builder = window_builder;
+
+            window_builder
+                .title("极简待办")
+                .inner_size(1200.0, 860.0)
+                .min_inner_size(900.0, 600.0)
+                .center()
+                .build()?;
 
             Ok(())
         })

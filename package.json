@@ -5,11 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:desktop-web": "npm run build && node scripts/prepare-standalone.mjs",
     "start": "next start",
     "lint": "eslint .",
     "clean": "next clean",
     "tauri:dev": "tauri dev",
-    "tauri:build": "npm run build && tauri build --no-bundle"
+    "tauri:build": "tauri build --no-bundle"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",

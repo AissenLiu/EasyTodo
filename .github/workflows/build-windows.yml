@@ -46,30 +46,20 @@ jobs:
       - name: 安装 npm 依赖
         run: npm ci
 
-      # ── 6. 构建 Next.js（standalone 模式）────────────────────────────
-      - name: 构建 Next.js
-        run: npm run build
+      # ── 6. 构建 Next.js standalone 资源 ────────────────────────────
+      - name: 构建 Next.js standalone 资源
+        run: npm run build:desktop-web
         env:
           # 如需内网 AI API，在 GitHub Secrets 中配置这些变量
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      # ── 7. 准备 standalone 包（补充静态资源）────────────────────────
-      - name: 准备 Next.js standalone 资源
-        shell: pwsh
-        run: |
-          # standalone 目录需要手动补充 static 和 public
-          Copy-Item -Recurse -Force .next/static .next/standalone/.next/static
-          if (Test-Path public) {
-            Copy-Item -Recurse -Force public .next/standalone/public
-          }
-
-      # ── 8. 编译 Tauri（仅生成 exe，不打包 installer）────────────────
+      # ── 7. 编译 Tauri（仅生成 exe，不打包 installer）────────────────
       - name: 构建 Tauri 可执行文件
         run: npx tauri build --no-bundle
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
 
-      # ── 9. 打包成可分发的 zip ─────────────────────────────────────────
+      # ── 8. 打包成可分发的 zip ─────────────────────────────────────────
       - name: 打包成 zip
         shell: pwsh
         run: |
@@ -96,7 +86,7 @@ jobs:
           echo "打包完成，文件列表："
           Get-ChildItem $OutputDir -Recurse | Select-Object FullName
 
-      # ── 10. 上传 artifact ───────────────────────────────────────────
+      # ── 9. 上传 artifact ────────────────────────────────────────────
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
@@ -104,7 +94,7 @@ jobs:
           path: 极简待办-windows.zip
           retention-days: 30
 
-      # ── 11. 如果是 tag 推送，自动创建 Release ────────────────────────
+      # ── 10. 如果是 tag 推送，自动创建 Release ───────────────────────
       - name: 发布 Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -115,5 +105,5 @@ jobs:
           body: |
             ## 使用方法
             1. 下载并解压 `极简待办-windows.zip`
-            2. 确认电脑已安装 Node.js（内网环境应已有）
+            2. 确认电脑已安装 Node.js 20.17 或更高版本
             3. 双击 `启动.bat` 即可运行
