@@ -176,6 +176,11 @@ export default function StatsPage() {
 
   const totalTasks = data.reduce((s, i) => s + i.tasks, 0);
   const maxTasks = Math.max(...data.map(i => i.tasks), 0);
+  const chartGridColor = 'var(--color-gray-100)';
+  const chartAxisColor = 'var(--color-gray-400)';
+  const chartCursorColor = 'var(--color-gray-50)';
+  const completedColor = 'var(--color-emerald-500)';
+  const uncompletedColor = 'var(--color-gray-400)';
 
 
 
@@ -258,21 +263,21 @@ export default function StatsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   {chartType === 'bar' ? (
                     <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} dy={10} interval={timeRange === 'daily' ? 2 : timeRange === 'monthly' ? 2 : 0} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
-                      <Tooltip cursor={{ fill: '#f9fafb' }} content={<CustomTooltip taskStatus={taskStatus} />} />
-                      {taskStatus !== 'uncompleted' && <Bar dataKey="completed" name="已完成" stackId="a" fill="#10b981" radius={0} barSize={timeRange === 'monthly' ? 12 : timeRange === 'daily' ? 16 : 32} />}
-                      {taskStatus !== 'completed' && <Bar dataKey="uncompleted" name="未完成" stackId="a" fill="#9ca3af" radius={0} barSize={timeRange === 'monthly' ? 12 : timeRange === 'daily' ? 16 : 32} />}
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: chartAxisColor }} dy={10} interval={timeRange === 'daily' ? 2 : timeRange === 'monthly' ? 2 : 0} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: chartAxisColor }} allowDecimals={false} />
+                      <Tooltip cursor={{ fill: chartCursorColor }} content={<CustomTooltip taskStatus={taskStatus} />} />
+                      {taskStatus !== 'uncompleted' && <Bar dataKey="completed" name="已完成" stackId="a" fill={completedColor} radius={0} barSize={timeRange === 'monthly' ? 12 : timeRange === 'daily' ? 16 : 32} />}
+                      {taskStatus !== 'completed' && <Bar dataKey="uncompleted" name="未完成" stackId="a" fill={uncompletedColor} radius={0} barSize={timeRange === 'monthly' ? 12 : timeRange === 'daily' ? 16 : 32} />}
                     </BarChart>
                   ) : (
                     <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} dy={10} interval={timeRange === 'daily' ? 2 : timeRange === 'monthly' ? 2 : 0} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: chartAxisColor }} dy={10} interval={timeRange === 'daily' ? 2 : timeRange === 'monthly' ? 2 : 0} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: chartAxisColor }} allowDecimals={false} />
                       <Tooltip content={<CustomTooltip taskStatus={taskStatus} />} />
-                      {taskStatus !== 'uncompleted' && <Line type="monotone" dataKey="completed" name="已完成" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#10b981', strokeWidth: 0 }} />}
-                      {taskStatus !== 'completed' && <Line type="monotone" dataKey="uncompleted" name="未完成" stroke="#9ca3af" strokeWidth={2} dot={{ r: 3, fill: '#9ca3af', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#9ca3af', strokeWidth: 0 }} />}
+                      {taskStatus !== 'uncompleted' && <Line type="monotone" dataKey="completed" name="已完成" stroke={completedColor} strokeWidth={2} dot={{ r: 3, fill: completedColor, strokeWidth: 0 }} activeDot={{ r: 5, fill: completedColor, strokeWidth: 0 }} />}
+                      {taskStatus !== 'completed' && <Line type="monotone" dataKey="uncompleted" name="未完成" stroke={uncompletedColor} strokeWidth={2} dot={{ r: 3, fill: uncompletedColor, strokeWidth: 0 }} activeDot={{ r: 5, fill: uncompletedColor, strokeWidth: 0 }} />}
                     </LineChart>
                   )}
                 </ResponsiveContainer>

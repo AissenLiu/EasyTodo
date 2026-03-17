@@ -631,8 +631,8 @@ export default function Home() {
   }, [taskGroups, globalSearchQuery, filterDate]);
 
   return (
-    <div className="flex-1 flex w-full h-full relative">
-      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+    <div className="flex-1 flex w-full h-full min-h-0 relative bg-white">
+      <div className="flex-1 flex min-h-0 flex-col overflow-y-auto">
         <div className="w-full max-w-3xl mx-auto px-12 pt-8 pb-12 flex flex-col min-h-full">
           {/* Input Area */}
           <div className="relative mb-8" ref={inputContainerRef}>
@@ -768,7 +768,7 @@ export default function Home() {
                           onClick={() => toggleTask(groupIdx, task.id)}
                           className={`w-[18px] h-[18px] shrink-0 flex items-center justify-center border transition-all cursor-pointer ${
                             task.completed 
-                              ? 'bg-gray-900 border-gray-900 text-white' 
+                              ? 'bg-gray-400 border-gray-400 text-white' 
                               : 'border-gray-300 bg-white group-hover:border-gray-400'
                           }`}
                         >
@@ -858,6 +858,8 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <div className="w-px shrink-0 self-stretch bg-gray-100" />
 
       <RightSidebar 
         onSearch={setGlobalSearchQuery} 

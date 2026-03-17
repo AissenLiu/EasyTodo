@@ -93,7 +93,7 @@ export default function RightSidebar({
   const monthLabel = `${calendarDate.getFullYear()}年${calendarDate.getMonth() + 1}月`;
 
   return (
-    <aside className="w-72 border-l border-gray-100 bg-white flex flex-col h-screen sticky top-0 p-6">
+    <aside className="w-72 bg-white flex flex-col h-screen sticky top-0 p-6">
       {/* Search */}
       <div className="relative mb-8">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

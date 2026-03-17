@@ -15,6 +15,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -51,9 +52,9 @@ export default function Sidebar() {
       <nav className="flex-1 py-2 space-y-1.5 overflow-hidden">
         {links.map((link) => {
           const Icon = link.icon;
-          
+
           // Simplified active logic
-          const isActive = isSettings 
+          const isActive = isSettings
             ? link.href === '/settings#model-settings' // Default to first link active in settings
             : pathname === link.href;
 
@@ -62,15 +63,14 @@ export default function Sidebar() {
               key={link.href}
               href={link.href}
               title={isCollapsed ? link.label : undefined}
-              className={`flex items-center ${isCollapsed ? 'justify-center mx-3 px-0' : 'mx-4 px-4'} py-3 transition-colors ${
-                isActive
-                  ? 'bg-gray-50/80 text-gray-900 font-bold'
-                  : 'text-gray-400 hover:bg-gray-50/50 hover:text-gray-900 font-medium'
-              }`}
+              className={`flex items-center ${isCollapsed ? 'justify-center mx-3 px-0' : 'mx-4 px-4'} py-3 transition-colors ${isActive
+                ? 'bg-gray-50/80 text-gray-900 font-bold'
+                : 'text-gray-400 hover:bg-gray-50/50 hover:text-gray-900 font-medium'
+                }`}
             >
-              <Icon 
-                className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-gray-900' : ''}`} 
-                strokeWidth={isActive ? 2.5 : 2} 
+              <Icon
+                className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-gray-900' : ''}`}
+                strokeWidth={isActive ? 2.5 : 2}
               />
               {!isCollapsed && <span className="text-[14px] ml-4 whitespace-nowrap">{link.label}</span>}
             </Link>
@@ -79,14 +79,14 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 pt-2 shrink-0 space-y-2">
+        <ThemeToggle collapsed={isCollapsed} />
         <Link
           href="/settings"
           title={isCollapsed ? "设置" : undefined}
-          className={`flex items-center ${isCollapsed ? 'justify-center mx-0 px-0' : 'mx-0 px-4'} py-3 transition-colors ${
-            isSettings
-              ? 'bg-gray-50/80 text-gray-900 font-bold'
-              : 'text-gray-400 hover:bg-gray-50/50 hover:text-gray-900 font-medium'
-          }`}
+          className={`flex items-center ${isCollapsed ? 'justify-center mx-0 px-0' : 'mx-0 px-4'} py-3 transition-colors ${isSettings
+            ? 'bg-gray-50/80 text-gray-900 font-bold'
+            : 'text-gray-400 hover:bg-gray-50/50 hover:text-gray-900 font-medium'
+            }`}
         >
           <Settings className={`w-[18px] h-[18px] shrink-0 ${isSettings ? 'text-gray-900' : ''}`} strokeWidth={isSettings ? 2.5 : 2} />
           {!isCollapsed && <span className="text-[14px] ml-4 whitespace-nowrap">设置</span>}
@@ -103,6 +103,9 @@ export default function Sidebar() {
           )}
           {!isCollapsed && <span className="text-[14px] ml-4 whitespace-nowrap">收起侧边栏</span>}
         </button>
+        <div className={`pt-3 text-[11px] text-gray-300 ${isCollapsed ? 'text-center' : 'px-4'}`}>
+          {isCollapsed ? '©' : '© Designed by LiuChen 2026'}
+        </div>
       </div>
     </aside>
   );

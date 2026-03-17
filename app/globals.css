@@ -1,2 +1,83 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+:root {
+  --app-bg: oklch(96.8% 0.002 247.839);
+  --app-fg: var(--color-gray-900);
+}
+
+html {
+  background-color: var(--app-bg);
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--app-fg);
+}
+
+.theme-shell,
+body,
+aside,
+main,
+input,
+textarea,
+select,
+button {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+::selection {
+  background-color: color-mix(in oklab, var(--color-gray-900) 18%, transparent);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --app-bg: oklch(14.5% 0.008 255);
+  --app-fg: var(--color-gray-900);
+  --color-white: oklch(17.8% 0.01 255);
+  --color-gray-50: oklch(21.5% 0.012 255);
+  --color-gray-100: oklch(25% 0.013 255);
+  --color-gray-200: oklch(30% 0.015 255);
+  --color-gray-300: oklch(38% 0.016 255);
+  --color-gray-400: oklch(57% 0.02 255);
+  --color-gray-500: oklch(67% 0.018 255);
+  --color-gray-600: oklch(76% 0.015 255);
+  --color-gray-700: oklch(83% 0.012 255);
+  --color-gray-800: oklch(90% 0.009 255);
+  --color-gray-900: oklch(96% 0.004 255);
+  --color-red-50: oklch(23% 0.03 20);
+  --color-red-100: oklch(28% 0.045 20);
+  --color-blue-50: oklch(24% 0.035 255);
+  --color-blue-200: oklch(74% 0.08 255);
+  --color-emerald-200: oklch(78% 0.08 170);
+}
+
+[data-theme='dark'] .prose,
+[data-theme='dark'] .prose-gray {
+  --tw-prose-body: var(--color-gray-700);
+  --tw-prose-headings: var(--color-gray-900);
+  --tw-prose-lead: var(--color-gray-600);
+  --tw-prose-links: var(--color-gray-900);
+  --tw-prose-bold: var(--color-gray-900);
+  --tw-prose-counters: var(--color-gray-500);
+  --tw-prose-bullets: var(--color-gray-400);
+  --tw-prose-hr: var(--color-gray-200);
+  --tw-prose-quotes: var(--color-gray-900);
+  --tw-prose-quote-borders: var(--color-gray-300);
+  --tw-prose-captions: var(--color-gray-500);
+  --tw-prose-kbd: var(--color-gray-900);
+  --tw-prose-kbd-shadows: color-mix(in oklab, var(--color-gray-900) 12%, transparent);
+  --tw-prose-code: var(--color-gray-900);
+  --tw-prose-pre-code: var(--color-gray-900);
+  --tw-prose-pre-bg: var(--color-gray-50);
+  --tw-prose-th-borders: var(--color-gray-300);
+  --tw-prose-td-borders: var(--color-gray-200);
+}
