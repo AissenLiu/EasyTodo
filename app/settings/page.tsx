@@ -124,7 +124,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto">
+    <div className="flex-1 flex min-h-0 flex-col overflow-y-auto bg-white">
       <div className="w-full max-w-3xl mx-auto px-12 py-16 flex flex-col min-h-full">
         <div className="mb-12">
           <Link
