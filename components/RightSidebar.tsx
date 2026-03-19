@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Solar, Lunar, HolidayUtil } from 'lunar-typescript';
+import { useNow } from '@/hooks/useNow';
 
 type Task = {
   id: string;
@@ -30,11 +31,10 @@ export default function RightSidebar({
   selectedDate?: Date | null,
   onSelectDate?: (d: Date | null) => void 
 }) {
+  const now = useNow();
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [taskGroups, setTaskGroups] = useState<TaskGroup[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const today = useMemo(() => new Date(), []);
 
   // Fetch tasks to know which days have tasks (for dot indicators)
   useEffect(() => {
@@ -43,6 +43,16 @@ export default function RightSidebar({
       .then(data => setTaskGroups(data))
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    setCalendarDate(prev => {
+      const isViewingCurrentMonth =
+        prev.getFullYear() === now.getFullYear() &&
+        prev.getMonth() === now.getMonth();
+
+      return isViewingCurrentMonth ? new Date(now.getFullYear(), now.getMonth(), 1) : prev;
+    });
+  }, [now]);
 
   // Compute which dates in current view have tasks
   const datesWithTasks = useMemo(() => {
@@ -136,7 +146,7 @@ export default function RightSidebar({
               <div key={day} className="text-gray-400 font-medium pb-2">{day}</div>
             ))}
             {calendarCells.map((cell, i) => {
-              const isToday = cell.fullDate.toDateString() === today.toDateString();
+              const isToday = cell.fullDate.toDateString() === now.toDateString();
               const isCurrentMonth = cell.month === 'current';
               const hasTask = datesWithTasks.has(cell.fullDate.toDateString()) && isCurrentMonth;
 

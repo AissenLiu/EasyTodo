@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Bell, Bot as BotIcon, Monitor } from 'lucide-react';
 import { useCommands } from '@/hooks/useCommands';
+import { useNow } from '@/hooks/useNow';
 import RightSidebar from '@/components/RightSidebar';
 import ReminderModal, { TaskReminderData, ReminderType } from '@/components/ReminderModal';
 import { Bot as BotType } from '@/components/BotEditor';
@@ -30,6 +31,7 @@ type TaskGroup = {
 };
 
 export default function Home() {
+  const now = useNow();
   const [newTaskText, setNewTaskText] = useState('');
   const [showCommands, setShowCommands] = useState(false);
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
@@ -157,10 +159,12 @@ export default function Home() {
 
   useEffect(() => {
     fetchTasks();
-    const today = new Date();
-    setDateStr(`${today.getFullYear()} 年 ${today.getMonth() + 1} 月 ${today.getDate()} 日`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setDateStr(`${now.getFullYear()} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日`);
+  }, [now]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
