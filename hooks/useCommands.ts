@@ -7,19 +7,42 @@ export interface ShortcutCommand {
   tasks: string[];
 }
 
+function normalizeCommands(input: unknown): ShortcutCommand[] {
+  if (!Array.isArray(input)) return [];
+
+  return input
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const command = item as Record<string, unknown>;
+      return {
+        id: typeof command.id === 'string' ? command.id : '',
+        name: typeof command.name === 'string' ? command.name : '',
+        description: typeof command.description === 'string' ? command.description : '',
+        tasks: Array.isArray(command.tasks)
+          ? command.tasks.filter((task): task is string => typeof task === 'string')
+          : [],
+      };
+    })
+    .filter((item): item is ShortcutCommand => Boolean(item?.id && item.name));
+}
+
 export function useCommands() {
   const [commands, setCommandsState] = useState<ShortcutCommand[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     fetch('/api/commands')
-      .then(res => res.json())
-      .then(data => {
-        setCommandsState(data);
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || 'Failed to load commands');
+        }
+        setCommandsState(normalizeCommands(data));
         setIsLoaded(true);
       })
       .catch(err => {
         console.error('Failed to load commands:', err);
+        setCommandsState([]);
         setIsLoaded(true);
       });
   }, []);

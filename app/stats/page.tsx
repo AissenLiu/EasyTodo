@@ -57,9 +57,17 @@ export default function StatsPage() {
 
   useEffect(() => {
     fetch('/api/tasks')
-      .then(res => res.json())
-      .then(data => setAllTaskGroups(data))
-      .catch(console.error);
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || '加载任务失败');
+        }
+        setAllTaskGroups(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error(error);
+        setAllTaskGroups([]);
+      });
   }, []);
 
   const getWeekRange = (date: Date) => {

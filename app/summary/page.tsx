@@ -72,9 +72,17 @@ export default function SummaryPage() {
 
   useEffect(() => {
     fetch('/api/tasks')
-      .then(res => res.json())
-      .then(setAllTaskGroups)
-      .catch(console.error);
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || '加载任务失败');
+        }
+        setAllTaskGroups(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error(error);
+        setAllTaskGroups([]);
+      });
 
     const localPrompts = localStorage.getItem('focusflow_prompts');
     if (localPrompts) {

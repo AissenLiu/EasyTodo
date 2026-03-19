@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 import Sidebar from '@/components/Sidebar';
+import ClipboardWatcher from '@/components/ClipboardWatcher';
 
 const themeInitScript = `
   (function () {
@@ -30,6 +31,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="theme-shell font-sans flex h-screen overflow-hidden antialiased" suppressHydrationWarning>
+        <ClipboardWatcher />
         <Sidebar />
         <main className="flex-1 flex min-h-0 overflow-hidden">
           {children}

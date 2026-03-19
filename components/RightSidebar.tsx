@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Solar, Lunar, HolidayUtil } from 'lunar-typescript';
 import { useNow } from '@/hooks/useNow';
+import CountdownCalendarList from '@/components/CountdownCalendarList';
 
 type Task = {
   id: string;
@@ -39,9 +40,17 @@ export default function RightSidebar({
   // Fetch tasks to know which days have tasks (for dot indicators)
   useEffect(() => {
     fetch('/api/tasks')
-      .then(res => res.json())
-      .then(data => setTaskGroups(data))
-      .catch(console.error);
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || '加载任务失败');
+        }
+        setTaskGroups(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error(error);
+        setTaskGroups([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -57,7 +66,7 @@ export default function RightSidebar({
   // Compute which dates in current view have tasks
   const datesWithTasks = useMemo(() => {
     const set = new Set<string>();
-    taskGroups.forEach(group => {
+    (Array.isArray(taskGroups) ? taskGroups : []).forEach(group => {
       const d = parseChinaDateStr(group.date);
       if (d) set.add(d.toDateString());
     });
@@ -103,7 +112,7 @@ export default function RightSidebar({
   const monthLabel = `${calendarDate.getFullYear()}年${calendarDate.getMonth() + 1}月`;
 
   return (
-    <aside className="w-72 bg-white flex flex-col h-screen sticky top-0 p-6">
+    <aside className="w-72 bg-white flex flex-col h-screen sticky top-0 p-6 overflow-y-auto">
       {/* Search */}
       <div className="relative mb-8">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -218,6 +227,8 @@ export default function RightSidebar({
               );
             })}
           </div>
+
+          <CountdownCalendarList limit={4} />
     </aside>
   );
 }

@@ -4,24 +4,8 @@ import path from 'path';
 
 let db: Database<sqlite3.Database, sqlite3.Statement> | null = null;
 
-export async function getDb() {
-  if (db) {
-    return db;
-  }
-
-  // Tauri 打包后，Rust 层会注入 DATABASE_PATH 指向系统 AppData 目录
-  // 开发时 fallback 到 process.cwd()/database.sqlite
-  const dbPath = process.env.DATABASE_PATH
-    ? path.resolve(process.env.DATABASE_PATH)
-    : path.join(process.cwd(), 'database.sqlite');
-  
-  db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
-  });
-
-  // Initialize schema
-  await db.exec(`
+async function ensureSchema(currentDb: Database<sqlite3.Database, sqlite3.Statement>) {
+  await currentDb.exec(`
     CREATE TABLE IF NOT EXISTS commands (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -69,48 +53,214 @@ export async function getDb() {
       webhook TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS countdowns (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      display_unit TEXT NOT NULL DEFAULT 'day',
+      mode TEXT NOT NULL DEFAULT 'absolute',
+      target_at TEXT,
+      cycle_type TEXT,
+      cycle_value TEXT,
+      time_of_day TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pomodoro_settings (
+      id INTEGER PRIMARY KEY,
+      work_minutes INTEGER NOT NULL DEFAULT 25,
+      short_break_minutes INTEGER NOT NULL DEFAULT 5,
+      long_break_minutes INTEGER NOT NULL DEFAULT 15,
+      long_break_interval INTEGER NOT NULL DEFAULT 4,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pomodoro_sessions (
+      id TEXT PRIMARY KEY,
+      session_type TEXT NOT NULL,
+      planned_minutes INTEGER NOT NULL DEFAULT 25,
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      status TEXT NOT NULL DEFAULT 'completed'
+    );
+
+    CREATE TABLE IF NOT EXISTS clipboard_history (
+      id TEXT PRIMARY KEY,
+      content TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS memos (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '未命名备忘录',
+      content TEXT NOT NULL DEFAULT '',
+      category TEXT,
+      is_pinned BOOLEAN NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  await currentDb.run(`
+    INSERT OR IGNORE INTO pomodoro_settings (
+      id,
+      work_minutes,
+      short_break_minutes,
+      long_break_minutes,
+      long_break_interval
+    )
+    VALUES (1, 25, 5, 15, 4)
   `);
 
   // Migrate existing tasks table: add created_at if column not exists
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN reminder_time TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN reminder_time TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN reminder_type TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN reminder_type TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN bot_id TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN bot_id TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN is_reminded BOOLEAN NOT NULL DEFAULT 0`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN is_reminded BOOLEAN NOT NULL DEFAULT 0`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN bot_mentions TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN bot_mentions TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN bot_mention_all BOOLEAN NOT NULL DEFAULT 0`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN bot_mention_all BOOLEAN NOT NULL DEFAULT 0`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN bot_custom_message TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN bot_custom_message TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT 0`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT 0`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN tag_text TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN tag_text TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE tasks ADD COLUMN tag_color TEXT`);
+    await currentDb.run(`ALTER TABLE tasks ADD COLUMN tag_color TEXT`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE reports ADD COLUMN report_type TEXT NOT NULL DEFAULT 'daily'`);
+    await currentDb.run(`ALTER TABLE reports ADD COLUMN report_type TEXT NOT NULL DEFAULT 'daily'`);
   } catch (err) {}
   try {
-    await db.run(`ALTER TABLE reports ADD COLUMN report_date TEXT NOT NULL DEFAULT ''`);
+    await currentDb.run(`ALTER TABLE reports ADD COLUMN report_date TEXT NOT NULL DEFAULT ''`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN description TEXT NOT NULL DEFAULT ''`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN display_unit TEXT NOT NULL DEFAULT 'day'`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN mode TEXT NOT NULL DEFAULT 'absolute'`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN target_at TEXT`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN cycle_type TEXT`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN cycle_value TEXT`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN time_of_day TEXT`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE countdowns ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_settings ADD COLUMN work_minutes INTEGER NOT NULL DEFAULT 25`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_settings ADD COLUMN short_break_minutes INTEGER NOT NULL DEFAULT 5`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_settings ADD COLUMN long_break_minutes INTEGER NOT NULL DEFAULT 15`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_settings ADD COLUMN long_break_interval INTEGER NOT NULL DEFAULT 4`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_settings ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_sessions ADD COLUMN planned_minutes INTEGER NOT NULL DEFAULT 25`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_sessions ADD COLUMN ended_at TEXT`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE pomodoro_sessions ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE clipboard_history ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE clipboard_history ADD COLUMN source TEXT NOT NULL DEFAULT 'system'`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE clipboard_history ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE memos ADD COLUMN title TEXT NOT NULL DEFAULT '未命名备忘录'`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE memos ADD COLUMN content TEXT NOT NULL DEFAULT ''`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE memos ADD COLUMN category TEXT`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE memos ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT 0`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE memos ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch (err) {}
+  try {
+    await currentDb.run(`ALTER TABLE memos ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
   } catch (err) {}
 
+  await currentDb.exec(`
+    CREATE INDEX IF NOT EXISTS idx_countdowns_active ON countdowns(is_active, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_pomodoro_sessions_started_at ON pomodoro_sessions(started_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_clipboard_history_created_at ON clipboard_history(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_clipboard_history_hash ON clipboard_history(content_hash);
+    CREATE INDEX IF NOT EXISTS idx_memos_updated_at ON memos(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_memos_pinned_updated ON memos(is_pinned DESC, updated_at DESC);
+  `);
+}
+
+export async function getDb() {
+  if (!db) {
+    const dbPath = process.env.DATABASE_PATH
+      ? path.resolve(process.env.DATABASE_PATH)
+      : path.join(process.cwd(), 'database.sqlite');
+
+    db = await open({
+      filename: dbPath,
+      driver: sqlite3.Database
+    });
+  }
+
+  await ensureSchema(db);
   return db;
 }

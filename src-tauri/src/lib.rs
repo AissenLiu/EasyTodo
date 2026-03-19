@@ -59,6 +59,7 @@ pub fn run() {
     let port: u16 = if cfg!(debug_assertions) { 3000 } else { 38749 };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(move |app| {
             // ── 生产模式：启动内嵌 Next.js 服务器 ─────────────────────────
             #[cfg(not(debug_assertions))]

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
-export function useNow() {
+type Precision = 'minute' | 'second';
+
+export function useNow(precision: Precision = 'minute') {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -10,8 +12,9 @@ export function useNow() {
 
     const syncNow = () => {
       setNow(new Date());
-      const nextMinuteDelay = 60000 - (Date.now() % 60000) + 50;
-      timeoutId = setTimeout(syncNow, nextMinuteDelay);
+      const interval = precision === 'second' ? 1000 : 60000;
+      const nextDelay = interval - (Date.now() % interval) + 50;
+      timeoutId = setTimeout(syncNow, nextDelay);
     };
 
     const handleVisibilityChange = () => {
@@ -41,7 +44,7 @@ export function useNow() {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [precision]);
 
   return now;
 }

@@ -79,9 +79,13 @@ export default function Home() {
     try {
       const res = await fetch('/api/tasks');
       const data = await res.json();
-      setTaskGroups(data);
+      if (!res.ok) {
+        throw new Error(data?.error || '加载任务失败');
+      }
+      setTaskGroups(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
+      setTaskGroups([]);
     }
   };
 
@@ -608,9 +612,10 @@ export default function Home() {
   };
 
   // Show dropdown only when user is still typing the command name (no space yet)
+  const safeCommands = Array.isArray(commands) ? commands : [];
   const visibleCommands = newTaskText.includes(' ')
     ? []
-    : commands.filter(cmd =>
+    : safeCommands.filter(cmd =>
         cmd.name.toLowerCase().startsWith(newTaskText.toLowerCase()) && newTaskText.startsWith('/')
       );
 

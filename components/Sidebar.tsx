@@ -8,10 +8,13 @@ import {
   PieChart,
   BookOpen,
   Settings,
+  Hourglass,
+  TimerReset,
+  ClipboardList,
+  NotebookText,
   Bot,
   Terminal,
   Brain,
-  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
@@ -24,6 +27,10 @@ export default function Sidebar() {
 
   const mainLinks = [
     { href: '/', label: '我的任务', icon: LayoutList },
+    { href: '/countdowns', label: '倒计时', icon: Hourglass },
+    { href: '/pomodoro', label: '番茄钟', icon: TimerReset },
+    { href: '/memos', label: '备忘录', icon: NotebookText },
+    { href: '/clipboard', label: '剪切板', icon: ClipboardList },
     { href: '/stats', label: '统计看板', icon: PieChart },
     { href: '/summary', label: '工作总结', icon: BookOpen },
   ];
