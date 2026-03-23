@@ -30,6 +30,12 @@ function parseChinaDateStr(str: string): Date | null {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function pad2(value: number) {
+  return String(value).padStart(2, '0');
+}
+
 const getWeekRange = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay();
@@ -41,6 +47,84 @@ const getWeekRange = (date: Date) => {
   return { start, end };
 };
 
+function formatDateInput(date: Date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseDateInput(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  date.setHours(0, 0, 0, 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getIsoWeekInfo(date: Date) {
+  const current = new Date(date);
+  current.setHours(0, 0, 0, 0);
+
+  const day = (current.getDay() + 6) % 7;
+  current.setDate(current.getDate() - day + 3);
+
+  const isoYear = current.getFullYear();
+  const firstThursday = new Date(isoYear, 0, 4);
+  firstThursday.setHours(0, 0, 0, 0);
+  const firstDay = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDay + 3);
+
+  const week = 1 + Math.round((current.getTime() - firstThursday.getTime()) / (7 * DAY_MS));
+  return { year: isoYear, week };
+}
+
+function formatWeekInput(date: Date) {
+  const { year, week } = getIsoWeekInfo(date);
+  return `${year}-W${pad2(week)}`;
+}
+
+function parseWeekInput(value: string) {
+  const match = value.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const week = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(week) || week < 1 || week > 53) return null;
+
+  const jan4 = new Date(year, 0, 4);
+  jan4.setHours(0, 0, 0, 0);
+  const day = (jan4.getDay() + 6) % 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setDate(jan4.getDate() - day);
+
+  const date = new Date(week1Monday);
+  date.setDate(week1Monday.getDate() + (week - 1) * 7);
+  date.setHours(0, 0, 0, 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatChinaDate(date: Date) {
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function parseLooseDateKey(value: string) {
+  const match = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  date.setHours(0, 0, 0, 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatReportDateLabel(report: Report) {
+  if (report.report_type === 'weekly') {
+    const start = parseLooseDateKey(report.report_date.replace(/^W-/, ''));
+    if (!start) return `周报: ${report.report_date.replace(/^W-/, '')}`;
+    const { end } = getWeekRange(start);
+    return `周报: ${formatChinaDate(start)} - ${formatChinaDate(end)}`;
+  }
+
+  const date = parseLooseDateKey(report.report_date);
+  return `日报: ${date ? formatChinaDate(date) : report.report_date}`;
+}
+
 const formatDateKey = (date: Date, type: 'daily' | 'weekly') => {
   if (type === 'daily') return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
   const { start } = getWeekRange(date);
@@ -49,6 +133,8 @@ const formatDateKey = (date: Date, type: 'daily' | 'weekly') => {
 
 export default function SummaryPage() {
   const [reportType, setReportType] = useState<'daily' | 'weekly'>('daily');
+  const [selectedDailyDate, setSelectedDailyDate] = useState(() => formatDateInput(new Date()));
+  const [selectedWeek, setSelectedWeek] = useState(() => formatWeekInput(new Date()));
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   
@@ -98,9 +184,13 @@ export default function SummaryPage() {
     try {
       const res = await fetch(`/api/reports?type=${reportType}`);
       const data = await res.json();
-      setReports(data);
+      if (!res.ok) {
+        throw new Error(data?.error || '加载报告失败');
+      }
+      setReports(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
+      setReports([]);
     }
   }, [reportType]);
 
@@ -112,6 +202,32 @@ export default function SummaryPage() {
   }, [reportType, fetchReports]);
 
   const selectedReport = useMemo(() => reports.find(r => r.id === selectedReportId) || null, [reports, selectedReportId]);
+
+  const selectedPeriodDate = useMemo(() => {
+    if (reportType === 'daily') {
+      return parseDateInput(selectedDailyDate);
+    }
+    return parseWeekInput(selectedWeek);
+  }, [reportType, selectedDailyDate, selectedWeek]);
+
+  const selectedPeriodLabel = useMemo(() => {
+    if (!selectedPeriodDate) return reportType === 'daily' ? '未选择日期' : '未选择周';
+    if (reportType === 'daily') {
+      return formatChinaDate(selectedPeriodDate);
+    }
+    const { start, end } = getWeekRange(selectedPeriodDate);
+    return `${formatChinaDate(start)} - ${formatChinaDate(end)}`;
+  }, [reportType, selectedPeriodDate]);
+
+  const selectedPeriodReportKey = useMemo(() => {
+    if (!selectedPeriodDate) return '';
+    return formatDateKey(selectedPeriodDate, reportType);
+  }, [reportType, selectedPeriodDate]);
+
+  const existingReportForSelectedPeriod = useMemo(
+    () => reports.find((report) => report.report_date === selectedPeriodReportKey) || null,
+    [reports, selectedPeriodReportKey]
+  );
 
   useEffect(() => {
     if (selectedReport && !isGenerating) {
@@ -128,30 +244,35 @@ export default function SummaryPage() {
       group.tasks.forEach(t => flatTasks.push({ ...t, parsedDate: d }));
     });
 
-    const now = new Date();
+    if (!selectedPeriodDate) return [];
+
     if (reportType === 'daily') {
-      return flatTasks.filter(t => t.parsedDate.toDateString() === now.toDateString());
+      return flatTasks.filter(t => t.parsedDate.toDateString() === selectedPeriodDate.toDateString());
     } else {
-      const { start, end } = getWeekRange(now);
+      const { start, end } = getWeekRange(selectedPeriodDate);
       return flatTasks.filter(t => t.parsedDate >= start && t.parsedDate <= end);
     }
-  }, [reportType, allTaskGroups]);
+  }, [reportType, allTaskGroups, selectedPeriodDate]);
 
   const handleGenerate = async () => {
+    if (!selectedPeriodDate) {
+      setGenerateError(reportType === 'daily' ? '请选择有效日期' : '请选择有效周');
+      return;
+    }
+
     setIsGenerating(true);
     setGeneratedReportText('');
     setGenerateError('');
     setSelectedReportId(null);
     setIsEditing(false);
 
-    const now = new Date();
     const dateStr = reportType === 'daily'
-      ? `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
+      ? formatChinaDate(selectedPeriodDate)
       : (() => {
-          const { start, end } = getWeekRange(now);
-          return `${start.getMonth() + 1}月${start.getDate()}日 - ${end.getMonth() + 1}月${end.getDate()}日`;
+          const { start, end } = getWeekRange(selectedPeriodDate);
+          return `${formatChinaDate(start)} - ${formatChinaDate(end)}`;
         })();
-    const reportDateKey = formatDateKey(now, reportType);
+    const reportDateKey = formatDateKey(selectedPeriodDate, reportType);
 
     try {
       const response = await fetch('/api/generate-report', {
@@ -304,21 +425,62 @@ export default function SummaryPage() {
 
           {/* Controls Row */}
           <div className="flex items-center justify-between mb-6">
-            <div className="inline-flex border border-gray-200 bg-gray-50 p-1 w-fit">
-              <button 
-                onClick={() => setReportType('daily')} 
-                className={`flex items-center gap-2 px-6 py-2 text-[13px] font-medium transition-colors ${reportType === 'daily' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900 border border-transparent'}`}
-              >
-                <FileText className="w-4 h-4" />
-                日报记录
-              </button>
-              <button 
-                onClick={() => setReportType('weekly')} 
-                className={`flex items-center gap-2 px-6 py-2 text-[13px] font-medium transition-colors ${reportType === 'weekly' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900 border border-transparent'}`}
-              >
-                <CalendarIcon className="w-4 h-4" />
-                周报记录
-              </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex border border-gray-200 bg-gray-50 p-1 w-fit">
+                <button 
+                  onClick={() => setReportType('daily')} 
+                  className={`flex items-center gap-2 px-6 py-2 text-[13px] font-medium transition-colors ${reportType === 'daily' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900 border border-transparent'}`}
+                >
+                  <FileText className="w-4 h-4" />
+                  日报记录
+                </button>
+                <button 
+                  onClick={() => setReportType('weekly')} 
+                  className={`flex items-center gap-2 px-6 py-2 text-[13px] font-medium transition-colors ${reportType === 'weekly' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900 border border-transparent'}`}
+                >
+                  <CalendarIcon className="w-4 h-4" />
+                  周报记录
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 border border-gray-200 bg-gray-50 px-3 py-2">
+                <CalendarIcon className="w-4 h-4 text-gray-400" />
+                {reportType === 'daily' ? (
+                  <>
+                    <input
+                      type="date"
+                      value={selectedDailyDate}
+                      onChange={(e) => setSelectedDailyDate(e.target.value)}
+                      className="bg-transparent text-[13px] text-gray-700 outline-none"
+                    />
+                    <button
+                      onClick={() => setSelectedDailyDate(formatDateInput(new Date()))}
+                      className="text-[12px] text-gray-500 hover:text-gray-900"
+                    >
+                      今天
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="week"
+                      value={selectedWeek}
+                      onChange={(e) => setSelectedWeek(e.target.value)}
+                      className="bg-transparent text-[13px] text-gray-700 outline-none"
+                    />
+                    <button
+                      onClick={() => setSelectedWeek(formatWeekInput(new Date()))}
+                      className="text-[12px] text-gray-500 hover:text-gray-900"
+                    >
+                      本周
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="text-[12px] text-gray-500">
+              当前选择：<span className="font-medium text-gray-700">{selectedPeriodLabel}</span>
             </div>
           </div>
 
@@ -328,22 +490,47 @@ export default function SummaryPage() {
               // LIST VIEW
               <div className="flex flex-col h-full">
                 <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center shrink-0">
-                  <h2 className="text-[14px] font-bold text-gray-900">
-                    {reportType === 'daily' ? '历史日报' : '历史周报'}
-                  </h2>
-                  <button
-                    onClick={handleGenerate}
-                    disabled={currentTasks.length === 0}
-                    className="flex items-center gap-2 bg-gray-900 text-white py-1.5 px-4 text-[13px] font-medium rounded hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    生成{reportType === 'daily' ? '今日日报' : '本周周报'}
-                  </button>
+                  <div>
+                    <h2 className="text-[14px] font-bold text-gray-900">
+                      {reportType === 'daily' ? '历史日报' : '历史周报'}
+                    </h2>
+                    <p className="mt-1 text-[12px] text-gray-500">
+                      生成周期：{selectedPeriodLabel}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {existingReportForSelectedPeriod && (
+                      <button
+                        onClick={() => {
+                          setSelectedReportId(existingReportForSelectedPeriod.id);
+                          setIsEditing(false);
+                        }}
+                        className="flex items-center gap-2 bg-white text-gray-700 py-1.5 px-4 text-[13px] font-medium rounded border border-gray-200 hover:text-gray-900 hover:border-gray-300 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        查看已生成
+                      </button>
+                    )}
+                    <button
+                      onClick={handleGenerate}
+                      disabled={!selectedPeriodDate || currentTasks.length === 0}
+                      className="flex items-center gap-2 bg-gray-900 text-white py-1.5 px-4 text-[13px] font-medium rounded hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      生成{reportType === 'daily' ? '所选日报' : '所选周报'}
+                    </button>
+                  </div>
                 </div>
                 
                 {currentTasks.length === 0 && (
                   <div className="px-4 py-3 bg-blue-50/50 border-b border-gray-100 text-[12px] text-blue-600 flex items-center justify-center">
-                    当前周期内暂无待办任务，无法生成新的总结
+                    所选周期内暂无待办任务，无法生成新的总结
+                  </div>
+                )}
+
+                {existingReportForSelectedPeriod && currentTasks.length > 0 && (
+                  <div className="px-4 py-3 bg-amber-50/60 border-b border-gray-100 text-[12px] text-amber-700 flex items-center justify-center">
+                    当前所选周期已有历史记录，重新生成后会覆盖原内容
                   </div>
                 )}
 
@@ -366,7 +553,7 @@ export default function SummaryPage() {
                         >
                           <div className="flex flex-col flex-1 pr-6 min-w-0">
                             <h3 className="text-[14px] font-bold text-gray-900 mb-1.5">
-                              {report.report_date.startsWith('W-') ? '周报: ' + report.report_date.replace('W-', '') : '日报: ' + report.report_date}
+                              {formatReportDateLabel(report)}
                             </h3>
                             <p className="text-[13px] text-gray-500 line-clamp-1 break-all">
                               {report.content.substring(0, 150).replace(/\n/g, ' ')}...
@@ -425,8 +612,8 @@ export default function SummaryPage() {
                     <div className="h-4 w-px bg-gray-300"></div>
                     <h3 className="text-[14px] font-bold text-gray-900">
                       {selectedReport ? (
-                          selectedReport.report_date.startsWith('W-') ? '周报详情: ' + selectedReport.report_date.replace('W-', '') : '日报详情: ' + selectedReport.report_date
-                      ) : isGenerating ? 'AI 正在生成总结...' : '记录详情'}
+                          `${selectedReport.report_type === 'weekly' ? '周报详情' : '日报详情'}: ${formatReportDateLabel(selectedReport).replace(/^(周报|日报):\s*/, '')}`
+                      ) : isGenerating ? `AI 正在生成 ${selectedPeriodLabel} 的总结...` : '记录详情'}
                     </h3>
                   </div>
                   
